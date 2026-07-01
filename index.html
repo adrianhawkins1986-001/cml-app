@@ -3,51 +3,1425 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>CML Field App v2</title>
+<title>CML Field App</title>
 <meta name="theme-color" content="#3a4452">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CML">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="manifest" href="manifest.json">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-/* Original styles from v1 + minimal enhancements */
-:root{--paper:#f4f1ea;--ink:#1c1f24;--steel:#3a4452;--amber:#d2691e;--panel:#fbfaf6;}
-.dark-mode {--paper:#1c1f24;--ink:#f4f1ea;--panel:#2a2f38;}
-body {font-family:'IBM Plex Sans',sans-serif;background:var(--paper);color:var(--ink);padding:20px;}
-header {border:2px solid var(--ink);background:var(--panel);padding:20px;position:relative;}
-.photo-btn {background:var(--amber);color:white;padding:8px 12px;border:none;cursor:pointer;margin:5px;}
+  :root{
+    --paper:#f4f1ea;
+    --ink:#1c1f24;
+    --steel:#3a4452;
+    --line:#c9c3b6;
+    --line-strong:#9a9385;
+    --amber:#d2691e;
+    --amber-deep:#a8500f;
+    --panel:#fbfaf6;
+    --grid:rgba(58,68,82,.06);
+    --good:#2f6f4f;
+    --bad:#b3261e;
+    --hi:#1d5fa8;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:'IBM Plex Sans',sans-serif;
+    background:var(--paper);
+    background-image:
+      linear-gradient(var(--grid) 1px,transparent 1px),
+      linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+    background-size:26px 26px;
+    color:var(--ink);
+    line-height:1.5;
+    padding:32px 20px 80px;
+    padding-top:calc(32px + env(safe-area-inset-top));
+  }
+  .wrap{max-width:1180px;margin:0 auto}
+  header{
+    border:2px solid var(--ink);
+    background:var(--panel);
+    padding:22px 26px;
+    position:relative;
+    box-shadow:6px 6px 0 var(--steel);
+  }
+  header::before{
+    content:"FIELD APP";
+    position:absolute;top:-11px;right:18px;
+    background:var(--amber);color:#fff;
+    font-family:'IBM Plex Mono',monospace;font-size:10px;
+    letter-spacing:.12em;padding:2px 10px;
+  }
+  h1{font-size:26px;font-weight:700;letter-spacing:-.01em}
+  .sub{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--steel);margin-top:6px;letter-spacing:.02em}
+
+  /* Pipework manager bar */
+  .pw-bar{
+    display:flex;flex-wrap:wrap;align-items:center;gap:8px;
+    border:1.5px solid var(--ink);background:var(--panel);
+    padding:10px 14px;margin-top:16px;
+    font-family:'IBM Plex Mono',monospace;
+  }
+  .pw-label{font-size:10px;letter-spacing:.14em;color:var(--amber-deep);font-weight:600}
+  #pwSelect{
+    flex:1;min-width:160px;max-width:300px;
+    font-family:'IBM Plex Mono',monospace;font-size:14px;
+    padding:9px 10px;border:1.5px solid var(--line-strong);background:#fff;color:var(--ink)
+  }
+  .pw-btn{
+    font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;letter-spacing:.04em;
+    padding:9px 11px;border:1.5px solid var(--line-strong);background:#fff;cursor:pointer;color:var(--steel)
+  }
+  .pw-btn:hover{border-color:var(--amber);color:var(--amber-deep)}
+  .pw-btn.danger:hover{border-color:var(--bad);color:var(--bad)}
+  #pwSaved{margin-left:auto;font-size:10px;letter-spacing:.08em;color:var(--good);white-space:nowrap}
+
+  .layout{display:grid;grid-template-columns:340px 1fr;gap:22px;margin-top:24px}
+  @media(max-width:820px){.layout{grid-template-columns:1fr}}
+  .panel{
+    border:1.5px solid var(--line-strong);
+    background:var(--panel);
+    padding:18px 18px 20px;
+  }
+  .panel h2{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--amber-deep);border-bottom:1.5px solid var(--line);
+    padding-bottom:8px;margin-bottom:16px;
+  }
+  label{display:block;font-size:12px;font-weight:600;color:var(--steel);margin:14px 0 5px;letter-spacing:.02em}
+  label:first-of-type{margin-top:0}
+  input[type=text],input[type=number],input[type=date],select{
+    width:100%;font-family:'IBM Plex Mono',monospace;font-size:14px;
+    padding:9px 11px;border:1.5px solid var(--line-strong);background:#fff;color:var(--ink);
+  }
+  input:focus,select:focus{outline:none;border-color:var(--amber)}
+  .map-table{width:100%;border-collapse:collapse;font-family:'IBM Plex Mono',monospace;font-size:12.5px}
+  .map-table th{text-align:left;font-size:10px;letter-spacing:.08em;color:var(--steel);padding:4px 4px;font-weight:600}
+  .map-table td{padding:3px 3px}
+  .map-table input{padding:6px 7px;font-size:12.5px;text-align:center}
+  .map-row td:last-child{width:34px}
+  .x-btn{border:1.5px solid var(--line-strong);background:#fff;cursor:pointer;width:32px;height:34px;font-size:15px;color:var(--steel);line-height:1}
+  .x-btn:hover{border-color:var(--amber);color:var(--amber)}
+  .ph-btn{border:1.5px solid var(--line-strong);background:#fff;cursor:pointer;height:34px;padding:0 8px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--steel);white-space:nowrap}
+  .ph-btn:hover{border-color:var(--amber);color:var(--amber-deep)}
+  .ph-btn.has{border-color:var(--good);color:var(--good);font-weight:600}
+  .add-row{margin-top:10px;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.06em;
+    background:none;border:1.5px dashed var(--line-strong);padding:9px 12px;cursor:pointer;color:var(--steel);width:100%}
+  .add-row:hover{border-color:var(--amber);color:var(--amber-deep)}
+  .note{font-size:11px;color:var(--steel);margin-top:12px;line-height:1.5;
+    border-left:3px solid var(--amber);padding:6px 0 6px 10px;background:rgba(210,105,30,.05)}
+  .summary{
+    display:flex;gap:0;border:1.5px solid var(--ink);margin-bottom:14px;background:var(--panel)
+  }
+  .summary div{flex:1;padding:12px 14px;border-right:1.5px solid var(--line)}
+  .summary div:last-child{border-right:none}
+  .summary .k{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;color:var(--steel);text-transform:uppercase}
+  .summary .v{font-family:'IBM Plex Mono',monospace;font-size:22px;font-weight:600;color:var(--ink);margin-top:2px}
+  .summary .v small{font-size:12px;color:var(--steel)}
+  .summary .v.alert{color:var(--bad)}
+  .actions{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+  .btn{
+    font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;letter-spacing:.04em;
+    padding:12px 20px;cursor:pointer;border:1.5px solid var(--ink);
+  }
+  .btn-primary{background:var(--amber);color:#fff;border-color:var(--amber-deep);box-shadow:3px 3px 0 var(--ink)}
+  .btn-primary:hover{background:var(--amber-deep);transform:translate(1px,1px);box-shadow:2px 2px 0 var(--ink)}
+  .btn-primary:active{transform:translate(3px,3px);box-shadow:none}
+  .btn-ghost{background:#fff;color:var(--ink)}
+  .btn-ghost:hover{border-color:var(--amber);color:var(--amber-deep)}
+  .btn-ghost.on{background:var(--steel);color:#fff;border-color:var(--steel)}
+  .table-scroll{border:1.5px solid var(--line-strong);background:#fff;overflow:auto;max-height:540px}
+  table.out{width:100%;border-collapse:collapse;font-family:'IBM Plex Mono',monospace;font-size:12px}
+  table.out th{
+    position:sticky;top:0;background:var(--steel);color:#fff;font-weight:500;
+    font-size:10px;letter-spacing:.05em;text-transform:uppercase;padding:9px 10px;text-align:left;white-space:nowrap;z-index:2
+  }
+  table.out td{padding:7px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+  table.out tr:nth-child(even) td{background:rgba(58,68,82,.03)}
+  table.out tr:hover td{background:rgba(210,105,30,.07)}
+  table.out tr.na td{background:rgba(58,68,82,.10)!important;color:#777}
+  .hide-done table.out tr.done{display:none}
+  table.out input.rd{
+    width:74px;padding:4px 6px;font-family:'IBM Plex Mono',monospace;font-size:12px;
+    border:1px solid var(--line);background:#fffdf5;text-align:center;color:var(--ink)
+  }
+  table.out input.rd:focus{outline:none;border-color:var(--amber);background:#fff}
+  table.out input.rd.var{border-color:#e08a00;background:rgba(232,144,0,.18);color:#8a5200;font-weight:600}
+  table.out input.rd.hi{border-color:var(--hi);background:rgba(29,95,168,.12);color:var(--hi);font-weight:600}
+  table.out input.rd.bad{border-color:var(--bad);background:rgba(179,38,30,.15);color:var(--bad);font-weight:700}
+  table.out input.rm{
+    width:170px;padding:4px 6px;font-family:'IBM Plex Mono',monospace;font-size:12px;
+    border:1px solid var(--line);background:#fffdf5;color:var(--ink)
+  }
+  table.out input.rm:focus{outline:none;border-color:var(--amber);background:#fff}
+  table.out select.rs{
+    width:110px;padding:4px 4px;font-family:'IBM Plex Mono',monospace;font-size:11px;
+    border:1px solid var(--line);background:#fffdf5;color:var(--ink)
+  }
+
+  /* Field-entry mode: active row enlarges while typing */
+  table.out td, table.out input.rd, table.out input.rm{
+    transition:padding .15s ease, font-size .15s ease, width .15s ease
+  }
+  table.out tbody tr:focus-within td{
+    background:#fff4e2!important;
+    padding-top:16px;padding-bottom:16px;
+    font-size:15px;
+  }
+  table.out tbody tr:focus-within td:first-child{
+    box-shadow:inset 5px 0 0 var(--amber);
+  }
+  table.out tbody tr:focus-within td.avg{font-size:18px}
+  table.out tbody tr:focus-within input.rd{
+    width:104px;font-size:19px;padding:12px 8px;border-width:2px;
+  }
+  table.out tbody tr:focus-within input.rm{
+    width:240px;font-size:15px;padding:12px 8px;border-width:2px;
+  }
+  table.out td.avg,table.out td.mincell{font-weight:600}
+  table.out td.low{color:var(--bad);font-weight:700;background:rgba(179,38,30,.08)!important}
+  table.out td.loss.warn,table.out td.rate.warn{color:var(--amber-deep);font-weight:700}
+  .cml-tag{color:var(--amber-deep);font-weight:600}
+  .empty{padding:40px;text-align:center;color:var(--steel);font-family:'IBM Plex Mono',monospace;font-size:12px}
+  footer{margin-top:22px;font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:var(--steel);text-align:center;letter-spacing:.04em}
+
+  /* CML adder section */
+  .adder{
+    border:1.5px dashed var(--line-strong);
+    background:#fff;
+    padding:14px;
+    margin-top:16px;
+  }
+  .btn-add-cml{
+    width:100%;margin-top:14px;
+    font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;letter-spacing:.06em;
+    background:var(--amber);color:#fff;border:1.5px solid var(--amber-deep);
+    padding:12px;cursor:pointer;box-shadow:3px 3px 0 var(--ink);
+  }
+  .btn-add-cml:hover{background:var(--amber-deep);transform:translate(1px,1px);box-shadow:2px 2px 0 var(--ink)}
+  .btn-add-cml:active{transform:translate(3px,3px);box-shadow:none}
+
+  /* CML list */
+  .cml-list-table{width:100%;border-collapse:collapse;font-family:'IBM Plex Mono',monospace;font-size:12px;margin-top:10px}
+  .cml-list-table th{font-size:10px;letter-spacing:.08em;color:var(--steel);padding:4px 6px;font-weight:600;text-align:left;border-bottom:1.5px solid var(--line)}
+  .cml-list-table td{padding:5px 6px;border-bottom:1px solid var(--line)}
+  .cml-list-table tr:last-child td{border-bottom:none}
+  .no-cmls{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--line-strong);
+    text-align:center;padding:12px;border-top:1px solid var(--line);margin-top:10px}
+
+  /* Collapsible equipment panel */
+  details.equip summary{
+    font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--amber-deep);border-bottom:1.5px solid var(--line);padding-bottom:8px;margin:24px 0 4px;
+    cursor:pointer;font-weight:600;list-style:none
+  }
+  details.equip summary::before{content:"▸ "}
+  details.equip[open] summary::before{content:"▾ "}
+
+  /* ── Overlays (run mode / photos) ── */
+  .overlay{
+    position:fixed;inset:0;z-index:50;background:var(--paper);
+    background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+    background-size:26px 26px;
+    overflow:auto;padding:20px;padding-top:calc(20px + env(safe-area-inset-top));
+  }
+  .ov-card{max-width:640px;margin:0 auto;border:2px solid var(--ink);background:var(--panel);box-shadow:6px 6px 0 var(--steel);padding:20px 22px}
+  .ov-top{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+  .ov-title{font-family:'IBM Plex Mono',monospace;font-size:22px;font-weight:600}
+  .ov-title .pos{color:var(--amber-deep)}
+  .ov-sub{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--steel);margin-top:2px}
+  .ov-close{border:1.5px solid var(--ink);background:#fff;cursor:pointer;padding:10px 16px;
+    font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600}
+  .rm-prog{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--steel);margin-top:14px;letter-spacing:.06em}
+  .rm-bar{height:8px;border:1.5px solid var(--ink);background:#fff;margin-top:5px}
+  .rm-bar div{height:100%;background:var(--amber);width:0%}
+  .rm-prev{font-family:'IBM Plex Mono',monospace;font-size:13px;margin-top:14px;padding:9px 12px;border:1.5px dashed var(--line-strong);background:#fff}
+  .rm-inputs{display:flex;gap:10px;margin-top:16px}
+  .rm-inputs input{
+    flex:1;font-family:'IBM Plex Mono',monospace;font-size:30px;font-weight:600;text-align:center;
+    padding:16px 6px;border:2px solid var(--line-strong);background:#fff;min-width:0
+  }
+  .rm-inputs input:focus{outline:none;border-color:var(--amber)}
+  .rm-inputs input.var{border-color:#e08a00;background:rgba(232,144,0,.14)}
+  .rm-inputs input.hi{border-color:var(--hi);background:rgba(29,95,168,.10)}
+  .rm-inputs input.bad{border-color:var(--bad);background:rgba(179,38,30,.12)}
+  .rm-calc{font-family:'IBM Plex Mono',monospace;font-size:15px;margin-top:12px;text-align:center}
+  .rm-calc .lowmsg{color:var(--bad);font-weight:700}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+  .chip{
+    font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;letter-spacing:.04em;
+    padding:10px 12px;border:1.5px solid var(--line-strong);background:#fff;cursor:pointer;color:var(--steel)
+  }
+  .chip.on{background:var(--steel);color:#fff;border-color:var(--steel)}
+  .rm-nav{display:flex;gap:10px;margin-top:20px}
+  .rm-nav .btn{flex:1;font-size:15px;padding:16px}
+  .rm-only{display:flex;align-items:center;gap:8px;margin-top:14px;
+    font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--steel)}
+  .rm-only input{width:auto}
+
+  /* Photos */
+  .ph-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-top:16px}
+  .ph-cell{position:relative;border:1.5px solid var(--line-strong);background:#fff}
+  .ph-cell img{width:100%;height:130px;object-fit:cover;display:block}
+  .ph-cell .x-btn{position:absolute;top:4px;right:4px}
+  .ph-cell .ts{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--steel);padding:3px 5px;display:block}
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
-    <h1>CML Field App <small>v2</small></h1>
-    <button id="darkToggle">🌙 Dark Mode</button>
-    <div id="lastUpdated" style="font-size:11px;color:#888;margin-top:8px;"></div>
+    <h1>CML Field App</h1>
+    <div class="sub">Corrosion / condition monitoring locations · multi-pipework storage · Excel export</div>
   </header>
 
-  <!-- Original app content would go here - for minimal, core structure is restored -->
-  <p>App loaded successfully. Full functionality restored with improvements.</p>
-  <!-- Add your pipework bar, panels, table, etc. from original -->
+  <!-- PIPEWORK MANAGER -->
+  <div class="pw-bar">
+    <span class="pw-label">PIPEWORK</span>
+    <select id="pwSelect"></select>
+    <button class="pw-btn" id="pwNew">+ NEW</button>
+    <button class="pw-btn" id="pwRename">RENAME</button>
+    <button class="pw-btn" id="pwDup">DUPLICATE</button>
+    <button class="pw-btn danger" id="pwDel">DELETE</button>
+    <button class="pw-btn" id="pwBackup">⇩ BACKUP</button>
+    <button class="pw-btn" id="pwRestore">⇧ RESTORE</button>
+    <input type="file" id="pwFile" accept=".json,application/json" hidden>
+    <span id="pwSaved"></span>
+  </div>
 
-  <button onclick="attachPhoto()">Attach Photo Test</button>
+  <div class="layout">
+    <!-- INPUT PANEL -->
+    <div class="panel">
+      <h2>Circuit Inputs</h2>
+      <label for="circuit">Tag - Sketch</label>
+      <input type="text" id="circuit" value="P3-PW-001" placeholder="e.g. P3-PW-001">
+
+      <label for="nps">Nominal Pipe Size — NPS (in)</label>
+      <input type="number" id="nps" inputmode="decimal" value="10" min="0.25" step="0.25">
+
+      <label for="nominal">Nominal Wall Thickness (mm)</label>
+      <input type="number" id="nominal" inputmode="decimal" step="0.1" placeholder="e.g. 9.27">
+
+      <label for="tmin">t-min (mm)</label>
+      <input type="number" id="tmin" inputmode="decimal" step="0.1" placeholder="e.g. 5.50">
+
+      <label for="inspDate">Date</label>
+      <input type="date" id="inspDate">
+
+      <label for="inspector">Inspector</label>
+      <input type="text" id="inspector" placeholder="e.g. A. Hawkins">
+
+      <details class="equip" id="equipBox">
+        <summary>Equipment / Calibration</summary>
+        <label for="eqMeter">UT Meter (make / model)</label>
+        <input type="text" id="eqMeter" placeholder="e.g. Olympus 38DL+">
+        <label for="eqSerial">Meter Serial No.</label>
+        <input type="text" id="eqSerial" placeholder="e.g. 38DL-12345">
+        <label for="eqProbe">Probe / Transducer</label>
+        <input type="text" id="eqProbe" placeholder="e.g. D790 5MHz">
+        <label for="eqBlock">Calibration Block</label>
+        <input type="text" id="eqBlock" placeholder="e.g. Step wedge CS 2.5–20mm">
+        <label for="eqCalDue">Calibration Due</label>
+        <input type="date" id="eqCalDue">
+        <label for="eqCouplant">Couplant</label>
+        <input type="text" id="eqCouplant" placeholder="e.g. Sonotech Ultragel II">
+        <label for="eqTemp">Surface Temp (°C)</label>
+        <input type="number" id="eqTemp" inputmode="decimal" step="1" placeholder="e.g. 45">
+      </details>
+
+      <h2 style="margin-top:24px">Add CML</h2>
+      <div class="adder">
+        <label for="addCMLName" style="margin-top:0">CML</label>
+        <input type="text" id="addCMLName" placeholder="e.g. CML-01" enterkeyhint="go" autocapitalize="characters" autocorrect="off">
+
+        <label for="addComponent">Component</label>
+        <select id="addComponent">
+          <option value="Straight">Straight</option>
+          <option value="Elbow">Elbow</option>
+          <option value="Reducer">Reducer</option>
+          <option value="Tee">Tee</option>
+        </select>
+
+        <button class="btn-add-cml" id="addCMLBtn">+ ADD CML TO LIST</button>
+      </div>
+
+      <!-- CML list -->
+      <div id="cmlListWrap">
+        <div class="no-cmls" id="noCMLs">No CMLs added yet</div>
+      </div>
+
+      <h2 style="margin-top:24px">Diameter → Points Mapping</h2>
+      <table class="map-table" id="mapTable">
+        <thead><tr><th>NPS up to (in)</th><th>Points / CML</th><th></th></tr></thead>
+        <tbody id="mapBody"></tbody>
+      </table>
+      <button class="add-row" id="addRow">+ ADD BAND</button>
+
+      <div class="note">
+        The mapping below is an <strong>illustrative example only</strong>. Replace these
+        values with the point allocation defined in your own inspection procedure or governing
+        standard before using the output for real integrity work.
+      </div>
+    </div>
+
+    <!-- OUTPUT PANEL -->
+    <div>
+      <div class="summary">
+        <div><div class="k">CMLs</div><div class="v" id="sCmls">—</div></div>
+        <div><div class="k">Points</div><div class="v" id="sTot">—</div></div>
+        <div><div class="k">Complete</div><div class="v" id="sDone">—</div></div>
+        <div><div class="k">Below t-min</div><div class="v" id="sLow">—</div></div>
+      </div>
+      <div class="actions">
+        <button class="btn btn-primary" id="runBtn">▶ RUN MODE</button>
+        <button class="btn btn-ghost" id="export">↓ EXCEL</button>
+        <button class="btn btn-ghost" id="csv">↓ CSV</button>
+        <button class="btn btn-ghost" id="prevImport">⇪ PREVIOUS SURVEY</button>
+        <input type="file" id="prevFile" accept=".json,.xlsx,.xls,.csv" hidden>
+        <button class="btn btn-ghost" id="onlyIncomplete">INCOMPLETE ONLY</button>
+      </div>
+      <div class="table-scroll" id="tableScroll">
+        <table class="out">
+          <thead><tr id="outHead"></tr></thead>
+          <tbody id="outBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <footer>DATA STORED ON THIS DEVICE · BACK UP REGULARLY · VERIFY ALL OUTPUT AGAINST YOUR INSPECTION PROCEDURE</footer>
+</div>
+
+<!-- ── RUN MODE OVERLAY ── -->
+<div class="overlay" id="runOverlay" hidden>
+  <div class="ov-card">
+    <div class="ov-top">
+      <div>
+        <div class="ov-title" id="rmTitle">—</div>
+        <div class="ov-sub" id="rmSub">—</div>
+      </div>
+      <button class="ov-close" id="rmExit">✕ EXIT</button>
+    </div>
+    <div class="rm-prog" id="rmProg">—</div>
+    <div class="rm-bar"><div id="rmBarFill"></div></div>
+    <div class="rm-prev" id="rmPrevLine" hidden></div>
+    <div class="rm-inputs">
+      <input type="number" inputmode="decimal" step="0.01" min="0" id="rm0" placeholder="R1" enterkeyhint="next">
+      <input type="number" inputmode="decimal" step="0.01" min="0" id="rm1" placeholder="R2" enterkeyhint="next">
+      <input type="number" inputmode="decimal" step="0.01" min="0" id="rm2" placeholder="R3" enterkeyhint="go">
+    </div>
+    <div class="rm-calc" id="rmCalc">&nbsp;</div>
+    <label for="rmRm" style="margin-top:14px">Remarks</label>
+    <input type="text" id="rmRm" placeholder="—">
+    <div class="chips" id="rmChips"></div>
+    <div class="rm-nav">
+      <button class="btn btn-ghost" id="rmPrevBtn">◀ PREV</button>
+      <button class="btn btn-primary" id="rmNextBtn">NEXT ▶</button>
+    </div>
+    <div class="rm-only">
+      <input type="checkbox" id="rmOnly"><label for="rmOnly" style="margin:0">Incomplete points only</label>
+    </div>
+  </div>
+</div>
+
+<!-- ── PHOTO OVERLAY ── -->
+<div class="overlay" id="phOverlay" hidden>
+  <div class="ov-card">
+    <div class="ov-top">
+      <div>
+        <div class="ov-title" id="phTitle">—</div>
+        <div class="ov-sub">Photos stay on this device — not included in JSON backups</div>
+      </div>
+      <button class="ov-close" id="phClose">✕ CLOSE</button>
+    </div>
+    <div class="ph-grid" id="phGrid"></div>
+    <div class="rm-nav">
+      <button class="btn btn-primary" id="phAdd">📷 ADD PHOTO</button>
+      <input type="file" id="phFile" accept="image/*" capture="environment" hidden>
+    </div>
+  </div>
 </div>
 
 <script>
-// Basic JS for new features
-document.getElementById('darkToggle').addEventListener('click', () => {
-  document.body.classList.toggle('dark-mode');
-});
+const HEADERS = ["CML ID","Circuit","Component","CML","Position","NPS (in)","Nominal (mm)","t-min (mm)","Reading 1 (mm)","Reading 2 (mm)","Reading 3 (mm)","Min (mm)","Avg (mm)","Prev (mm)","Loss (mm)","Rate (mm/yr)","Status","Date","Reading Time","Inspector","Remarks"];
+const LS_KEY = 'cml-field-app-v1';
+const DEFAULT_MAPPING = [{upTo:6, pts:4},{upTo:9999, pts:8}];
+const STATUS = [['','OK / active'],['INSUL','Insulated'],['OBST','Obstructed'],['SCAF','Needs scaffold'],['COAT','Coated'],['OTH','Other N/A']];
+const MILL_TOL = 1.125;   // reading > nominal × 1.125 flagged as above nominal + mill tolerance
+const ABSURD   = 3;       // reading > nominal × 3 flagged as probable error / unit mix-up
 
-document.getElementById('lastUpdated').textContent = 'Last updated: ' + new Date().toLocaleDateString('en-US', {year:'numeric', month:'long', day:'numeric'});
+const $ = id => document.getElementById(id);
+const escHtml = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+const nowStamp = () => {
+  const d = new Date(), p = n => String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+};
+const todayISO = () => new Date().toISOString().slice(0,10);
+function statusLabel(code){ const m = STATUS.find(s=>s[0]===code); return m && m[0] ? m[1] : ''; }
 
-function attachPhoto() {
-  alert('Photo attachment ready (full implementation in next iteration)');
+// ── IndexedDB (primary store — localStorage kept only as an emergency mirror) ──
+let db = null;
+function openDB(){
+  return new Promise((res,rej)=>{
+    const q = indexedDB.open('cml-field-db', 1);
+    q.onupgradeneeded = e => {
+      const d = e.target.result;
+      d.createObjectStore('kv');
+      d.createObjectStore('photos');
+      d.createObjectStore('backups');
+    };
+    q.onsuccess = () => { db = q.result; res(); };
+    q.onerror = () => rej(q.error);
+  });
+}
+function idbGet(st,k){ return new Promise((res,rej)=>{ const r=db.transaction(st).objectStore(st).get(k); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); }
+function idbSet(st,k,v){ return new Promise((res,rej)=>{ const r=db.transaction(st,'readwrite').objectStore(st).put(v,k); r.onsuccess=()=>res(); r.onerror=()=>rej(r.error); }); }
+function idbDel(st,k){ return new Promise((res,rej)=>{ const r=db.transaction(st,'readwrite').objectStore(st).delete(k); r.onsuccess=()=>res(); r.onerror=()=>rej(r.error); }); }
+function idbKeys(st){ return new Promise((res,rej)=>{ const r=db.transaction(st).objectStore(st).getAllKeys(); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); }
+
+// ── Store ─────────────────────────────────────────────────────────
+let store = null;
+let photoCounts = {};
+
+function uid(){ return 'pw' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+function blankPipework(name){
+  return {
+    id: uid(),
+    name: name,
+    form: {circuit:'', nps:'10', nominal:'', tmin:'', date:'', inspector:''},
+    equip: {meter:'', serial:'', probe:'', block:'', calDue:'', couplant:'', temp:''},
+    cmls: [],      // [{name, component, circuit, nps, nominal, tmin, date, inspector}]
+    readings: {},  // { "TAG-CML-POS": {0:'',1:'',2:'',rm:'',st:'',ts:''} }
+    prev: {}       // { "TAG-CML-POS": {thk:Number, date:'YYYY-MM-DD'} }
+  };
 }
 
-// TODO: Paste your original full script here for complete functionality
+function normalisePipework(p){
+  if(!p.equip) p.equip = {meter:'', serial:'', probe:'', block:'', calDue:'', couplant:'', temp:''};
+  if(!p.prev) p.prev = {};
+  if(!p.readings) p.readings = {};
+  if(!p.cmls) p.cmls = [];
+}
+
+async function loadStore(){
+  try{ store = await idbGet('kv','store') || null; }catch(e){ store = null; }
+  if(!store){
+    // migrate from the old localStorage-only version
+    try{ store = JSON.parse(localStorage.getItem(LS_KEY)); }catch(e){ store = null; }
+  }
+  if(!store || !store.pipeworks || !Array.isArray(store.order) || !store.order.length){
+    const p = blankPipework('Pipework 1');
+    store = {pipeworks:{[p.id]:p}, order:[p.id], activeId:p.id, mapping:DEFAULT_MAPPING.map(m=>({...m}))};
+  }
+  if(!store.mapping || !store.mapping.length) store.mapping = DEFAULT_MAPPING.map(m=>({...m}));
+  if(!store.pipeworks[store.activeId]) store.activeId = store.order[0];
+  Object.values(store.pipeworks).forEach(normalisePipework);
+}
+
+function active(){ return store.pipeworks[store.activeId]; }
+
+function syncFormIntoActive(){
+  const f = active().form;
+  f.circuit = $('circuit').value;
+  f.nps = $('nps').value;
+  f.nominal = $('nominal').value;
+  f.tmin = $('tmin').value;
+  f.date = $('inspDate').value;
+  f.inspector = $('inspector').value;
+  const q = active().equip;
+  q.meter = $('eqMeter').value; q.serial = $('eqSerial').value; q.probe = $('eqProbe').value;
+  q.block = $('eqBlock').value; q.calDue = $('eqCalDue').value; q.couplant = $('eqCouplant').value;
+  q.temp = $('eqTemp').value;
+}
+
+function applyActiveToForm(){
+  const f = active().form || {};
+  $('circuit').value = f.circuit || '';
+  $('nps').value = f.nps || '';
+  $('nominal').value = f.nominal || '';
+  $('tmin').value = f.tmin || '';
+  $('inspDate').value = f.date || '';
+  $('inspector').value = f.inspector || '';
+  const q = active().equip || {};
+  $('eqMeter').value = q.meter || ''; $('eqSerial').value = q.serial || ''; $('eqProbe').value = q.probe || '';
+  $('eqBlock').value = q.block || ''; $('eqCalDue').value = q.calDue || ''; $('eqCouplant').value = q.couplant || '';
+  $('eqTemp').value = q.temp || '';
+}
+
+// Debounced write-behind: UI stays instant, IndexedDB catches up ~300ms later
+let saveTimer = null;
+function save(){
+  syncFormIntoActive();
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(persist, 300);
+}
+async function persist(){
+  const json = JSON.stringify(store);
+  let ok = false;
+  try{ if(db){ await idbSet('kv','store', JSON.parse(json)); ok = true; } }catch(e){}
+  try{ localStorage.setItem(LS_KEY, json); ok = true; }catch(e){}
+  $('pwSaved').textContent = ok
+    ? 'SAVED ' + new Date().toTimeString().slice(0,5)
+    : 'SAVE FAILED — BACK UP NOW';
+}
+
+// Rolling auto-backups: snapshot on open + every 10 min, keep the last 3
+async function rollBackup(){
+  try{
+    await idbSet('backups', 'b' + Date.now(), JSON.parse(JSON.stringify(store)));
+    const keys = (await idbKeys('backups')).sort();
+    while(keys.length > 3) await idbDel('backups', keys.shift());
+  }catch(e){}
+}
+
+// ── Pipework manager ──────────────────────────────────────────────
+function renderPwSelect(){
+  $('pwSelect').innerHTML = store.order.map(id =>
+    `<option value="${id}"${id===store.activeId?' selected':''}>${escHtml(store.pipeworks[id].name)}</option>`
+  ).join('');
+}
+
+async function refreshAll(){
+  applyActiveToForm();
+  renderPwSelect();
+  renderMap();
+  await loadPhotoCounts();
+  renderCMLList();
+  generate();
+}
+
+function switchTo(id){
+  if(!store.pipeworks[id]) return;
+  save();
+  store.activeId = id;
+  refreshAll();
+  save();
+}
+
+function newPipework(){
+  const name = (prompt('Name for new pipework:', 'Pipework ' + (store.order.length + 1)) || '').trim();
+  if(!name) return;
+  save();
+  const p = blankPipework(name);
+  store.pipeworks[p.id] = p;
+  store.order.push(p.id);
+  store.activeId = p.id;
+  refreshAll();
+  save();
+}
+
+function renamePipework(){
+  const name = (prompt('Rename pipework:', active().name) || '').trim();
+  if(!name) return;
+  active().name = name;
+  renderPwSelect();
+  save();
+}
+
+function duplicatePipework(){
+  save();
+  const copy = JSON.parse(JSON.stringify(active()));
+  copy.id = uid();
+  copy.name = active().name + ' copy';
+  store.pipeworks[copy.id] = copy;
+  store.order.splice(store.order.indexOf(store.activeId) + 1, 0, copy.id);
+  store.activeId = copy.id;
+  refreshAll();
+  save();
+}
+
+async function deletePipework(){
+  if(!confirm(`Delete "${active().name}" and all its readings? This cannot be undone.`)) return;
+  const deadId = store.activeId;
+  delete store.pipeworks[deadId];
+  store.order = store.order.filter(id => id !== deadId);
+  if(!store.order.length){
+    const p = blankPipework('Pipework 1');
+    store.pipeworks[p.id] = p;
+    store.order = [p.id];
+  }
+  store.activeId = store.order[0];
+  try{
+    const keys = await idbKeys('photos');
+    for(const k of keys) if(String(k).startsWith(deadId + '|')) await idbDel('photos', k);
+  }catch(e){}
+  refreshAll();
+  save();
+}
+
+function backup(){
+  save();
+  const blob = new Blob([JSON.stringify(store, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'CML_backup_' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+}
+
+function restore(file){
+  const fr = new FileReader();
+  fr.onload = () => {
+    try{
+      const data = JSON.parse(fr.result);
+      if(!data || !data.pipeworks || !Array.isArray(data.order) || !data.order.length) throw new Error('bad file');
+      if(!confirm('Restoring will replace ALL pipeworks currently on this device with the backup. Continue?')) return;
+      store = data;
+      if(!store.mapping || !store.mapping.length) store.mapping = DEFAULT_MAPPING.map(m=>({...m}));
+      if(!store.pipeworks[store.activeId]) store.activeId = store.order[0];
+      Object.values(store.pipeworks).forEach(normalisePipework);
+      refreshAll();
+      save();
+    }catch(e){
+      alert('That file is not a valid CML backup.');
+    }
+  };
+  fr.readAsText(file);
+}
+
+// ── Diameter mapping ──────────────────────────────────────────────
+function renderMap(){
+  const body = $('mapBody');
+  body.innerHTML = '';
+  store.mapping.forEach((m,i)=>{
+    const tr = document.createElement('tr');
+    tr.className = 'map-row';
+    const upToVal = m.upTo >= 9999 ? '' : m.upTo;
+    const upToPlaceholder = m.upTo >= 9999 ? 'above' : '';
+    tr.innerHTML =
+      `<td><input type="number" inputmode="decimal" step="0.25" value="${upToVal}" placeholder="${upToPlaceholder}" data-i="${i}" data-f="upTo"></td>`+
+      `<td><input type="number" inputmode="numeric" step="1" min="1" value="${m.pts}" data-i="${i}" data-f="pts"></td>`+
+      `<td><button class="x-btn" data-del="${i}">×</button></td>`;
+    body.appendChild(tr);
+  });
+  body.querySelectorAll('input').forEach(inp=>{
+    inp.addEventListener('input',e=>{
+      const i = +e.target.dataset.i, f = e.target.dataset.f;
+      let v = e.target.value === '' ? (f==='upTo'?9999:0) : parseFloat(e.target.value);
+      store.mapping[i][f] = isNaN(v) ? 0 : v;
+      generate();
+      save();
+    });
+  });
+  body.querySelectorAll('[data-del]').forEach(b=>{
+    onTap(b, ()=>{
+      store.mapping.splice(+b.dataset.del,1);
+      renderMap(); generate(); save();
+    });
+  });
+}
+
+function pointsForNPS(nps){
+  const sorted = [...store.mapping].sort((a,b)=>a.upTo-b.upTo);
+  for(const band of sorted){ if(nps <= band.upTo) return band.pts; }
+  return sorted.length ? sorted[sorted.length-1].pts : 0;
+}
+
+function clockPositions(n){
+  const out = [];
+  for(let i=0;i<n;i++){
+    const letter = n === 4 ? String.fromCharCode(65+i*2) : String.fromCharCode(65+i);
+    out.push({label:letter, id:letter});
+  }
+  return out;
+}
+
+// Ordered list of every measurement point in the active pipework
+function pointList(){
+  const out = [];
+  active().cmls.forEach(cml=>{
+    clockPositions(pointsForNPS(cml.nps)).forEach(p=>{
+      out.push({key:`${cml.circuit}-${cml.name}-${p.id}`, cml, pos:p.label});
+    });
+  });
+  return out;
+}
+
+function readingNums(rd){
+  return [rd[0],rd[1],rd[2]].map(parseFloat).filter(v=>!isNaN(v));
+}
+function isDone(key){
+  const rd = active().readings[key] || {};
+  return !!rd.st || readingNums(rd).length > 0;
+}
+
+// ── Corrosion rate ────────────────────────────────────────────────
+function calcRate(pv, minV, curDate){
+  if(!pv || pv.thk === '' || pv.thk == null || minV === '') return {loss:'', rate:''};
+  const loss = +(pv.thk - minV).toFixed(2);
+  let rate = '';
+  if(pv.date){
+    const yrs = (new Date(curDate || todayISO()) - new Date(pv.date)) / 31557600000;
+    if(yrs > 0.05) rate = +(loss/yrs).toFixed(3);
+  }
+  return {loss, rate};
+}
+
+// ── CML list ──────────────────────────────────────────────────────
+async function loadPhotoCounts(){
+  photoCounts = {};
+  if(!db) return;
+  try{
+    const keys = await idbKeys('photos');
+    for(const k of keys){
+      if(!String(k).startsWith(store.activeId + '|')) continue;
+      const arr = await idbGet('photos', k);
+      photoCounts[k] = (arr && arr.length) || 0;
+    }
+  }catch(e){}
+}
+
+function photoKey(cml){ return store.activeId + '|' + cml.circuit + '-' + cml.name; }
+
+function renderCMLList(){
+  const wrap = $('cmlListWrap');
+  const cmls = active().cmls;
+  if(!cmls.length){
+    wrap.innerHTML = '<div class="no-cmls" id="noCMLs">No CMLs added yet</div>';
+    return;
+  }
+  wrap.innerHTML =
+    '<table class="cml-list-table">'+
+    '<thead><tr><th>#</th><th>Tag</th><th>Component</th><th></th><th></th></tr></thead>'+
+    '<tbody>'+
+    cmls.map((c,i)=>{
+      const n = photoCounts[photoKey(c)] || 0;
+      return `
+      <tr>
+        <td><span class="cml-tag">${escHtml(c.name)}</span></td>
+        <td>${escHtml(c.circuit)}</td>
+        <td>${escHtml(c.component)}</td>
+        <td><button class="ph-btn${n?' has':''}" data-ph="${i}">📷${n?' '+n:''}</button></td>
+        <td><button class="x-btn" data-del="${i}">×</button></td>
+      </tr>`;}).join('')+
+    '</tbody></table>';
+  wrap.querySelectorAll('[data-del]').forEach(b=>{
+    onTap(b, ()=>{
+      const i = +b.dataset.del;
+      const c = active().cmls[i];
+      if(!confirm(`Delete ${c.name} and its readings?`)) return;
+      Object.keys(active().readings).forEach(k=>{
+        if(k.startsWith(`${c.circuit}-${c.name}-`)) delete active().readings[k];
+      });
+      idbDel('photos', photoKey(c)).catch(()=>{});
+      active().cmls.splice(i, 1);
+      loadPhotoCounts().then(renderCMLList);
+      generate();
+      save();
+    });
+  });
+  wrap.querySelectorAll('[data-ph]').forEach(b=>{
+    onTap(b, ()=> openPhotos(active().cmls[+b.dataset.ph]));
+  });
+}
+
+// ── Row builder ───────────────────────────────────────────────────
+function buildRows(){
+  const items = [];
+  const readings = active().readings, prev = active().prev || {};
+  active().cmls.forEach(cml=>{
+    clockPositions(pointsForNPS(cml.nps)).forEach(p=>{
+      const key = `${cml.circuit}-${cml.name}-${p.id}`;
+      const rd = readings[key] || {};
+      const vals = [rd[0], rd[1], rd[2]].map(v=>{
+        const n = parseFloat(v);
+        return isNaN(n) ? '' : n;
+      });
+      const nums = vals.filter(v=>v!=='');
+      const minV = nums.length ? Math.min(...nums) : '';
+      const avg = nums.length ? +(nums.reduce((a,b)=>a+b,0)/nums.length).toFixed(2) : '';
+      const pv = prev[key] || null;
+      const {loss, rate} = calcRate(pv, minV, cml.date);
+      items.push({key, rd, cml, pv, cells:[
+        key, cml.circuit, cml.component, cml.name, p.label,
+        cml.nps, cml.nominal, cml.tmin,
+        vals[0], vals[1], vals[2], minV, avg,
+        pv ? pv.thk : '', loss, rate,
+        statusLabel(rd.st || ''), cml.date || '', rd.ts || '', cml.inspector || '', rd.rm || ''
+      ]});
+    });
+  });
+  return items;
+}
+
+// ── Summary ───────────────────────────────────────────────────────
+function updateSummary(){
+  const items = buildRows();
+  let done = 0, low = 0;
+  items.forEach(it=>{
+    if(it.rd.st || readingNums(it.rd).length) done++;
+    const tmin = parseFloat(it.cml.tmin);
+    if(it.cells[11] !== '' && !isNaN(tmin) && it.cells[11] < tmin) low++;
+  });
+  $('sCmls').textContent = active().cmls.length || '—';
+  $('sTot').textContent = items.length || '—';
+  $('sDone').innerHTML = items.length ? `${done}<small>/${items.length}</small>` : '—';
+  const lowEl = $('sLow');
+  lowEl.textContent = items.length ? low : '—';
+  lowEl.classList.toggle('alert', low > 0);
+}
+
+// ── Generate preview ──────────────────────────────────────────────
+function generate(){
+  updateSummary();
+  $('outHead').innerHTML = HEADERS.map(h=>`<th>${h}</th>`).join('');
+  const items = buildRows();
+  const body = $('outBody');
+  if(!items.length){
+    body.innerHTML = `<tr><td colspan="${HEADERS.length}" class="empty">Add CMLs using the panel on the left</td></tr>`;
+    return;
+  }
+  body.innerHTML = items.map(it=>{
+    const r = it.cells, key = escHtml(it.key);
+    const nom = parseFloat(it.cml.nominal), tmin = parseFloat(it.cml.tmin);
+    const done = it.rd.st || readingNums(it.rd).length ? ' done' : '';
+    const na = it.rd.st ? ' na' : '';
+    let html = `<tr class="${done}${na}" data-key="${key}" data-nom="${isNaN(nom)?'':nom}" data-tmin="${isNaN(tmin)?'':tmin}" data-prev="${it.pv?it.pv.thk:''}" data-pdate="${it.pv?escHtml(it.pv.date||''):''}" data-date="${escHtml(it.cml.date||'')}">`;
+    html += r.map((cell,idx)=>{
+      if(idx===3) return `<td class="cml-tag">${escHtml(cell)}</td>`;
+      if(idx>=8 && idx<=10){
+        return `<td><input class="rd" type="number" inputmode="decimal" step="0.01" min="0" data-key="${key}" data-f="${idx-8}" value="${cell}"></td>`;
+      }
+      if(idx===11){
+        const low = cell!=='' && !isNaN(tmin) && cell < tmin;
+        return `<td class="mincell${low?' low':''}" data-key="${key}">${cell===''?'<span style="color:#bbb">·</span>':cell.toFixed(2)}</td>`;
+      }
+      if(idx===12){
+        const low = cell!=='' && !isNaN(tmin) && cell < tmin;
+        return `<td class="avg${low?' low':''}" data-key="${key}">${cell===''?'<span style="color:#bbb">·</span>':cell.toFixed(2)}</td>`;
+      }
+      if(idx===14){
+        const warn = cell!=='' && cell > 0;
+        return `<td class="loss${warn?' warn':''}" data-key="${key}">${cell===''?'<span style="color:#bbb">·</span>':cell.toFixed(2)}</td>`;
+      }
+      if(idx===15){
+        const warn = cell!=='' && cell > 0;
+        return `<td class="rate${warn?' warn':''}" data-key="${key}">${cell===''?'<span style="color:#bbb">·</span>':cell.toFixed(3)}</td>`;
+      }
+      if(idx===16){
+        return `<td><select class="rs" data-key="${key}">${STATUS.map(([v,l])=>`<option value="${v}"${v===(it.rd.st||'')?' selected':''}>${l}</option>`).join('')}</select></td>`;
+      }
+      if(idx===20){
+        return `<td><input class="rm" type="text" data-key="${key}" value="${escHtml(cell)}" placeholder="—"></td>`;
+      }
+      return `<td>${cell===''?'<span style="color:#bbb">·</span>':escHtml(cell)}</td>`;
+    }).join('');
+    return html + '</tr>';
+  }).join('');
+  // apply validation classes to pre-filled readings
+  items.forEach(it=>{ if(readingNums(it.rd).length) updateCells(it.key); });
+}
+
+// Validation classes for one reading input
+function flagInput(inp, v, nom, avg){
+  inp.classList.remove('bad','hi','var');
+  if(isNaN(v)) return;
+  if(v <= 0 || (!isNaN(nom) && nom > 0 && v > nom*ABSURD)){ inp.classList.add('bad'); return; }
+  if(!isNaN(nom) && nom > 0 && v > nom*MILL_TOL){ inp.classList.add('hi'); return; }
+  if(avg !== null && avg > 0 && Math.abs(v-avg)/avg > 0.10) inp.classList.add('var');
+}
+
+// Targeted update of one row (keeps focus while typing)
+function updateCells(key){
+  const tr = $('outBody').querySelector(`tr[data-key="${CSS.escape(key)}"]`);
+  if(!tr) return;
+  const rd = active().readings[key] || {};
+  const nums = readingNums(rd);
+  const minV = nums.length ? Math.min(...nums) : null;
+  const avg = nums.length ? nums.reduce((a,b)=>a+b,0)/nums.length : null;
+  const nom = parseFloat(tr.dataset.nom), tmin = parseFloat(tr.dataset.tmin);
+
+  tr.querySelectorAll('input.rd').forEach(inp=> flagInput(inp, parseFloat(inp.value), nom, avg));
+
+  const minTd = tr.querySelector('td.mincell'), avgTd = tr.querySelector('td.avg');
+  if(minTd){
+    minTd.innerHTML = minV===null ? '<span style="color:#bbb">·</span>' : minV.toFixed(2);
+    minTd.classList.toggle('low', minV!==null && !isNaN(tmin) && minV < tmin);
+  }
+  if(avgTd){
+    avgTd.innerHTML = avg===null ? '<span style="color:#bbb">·</span>' : avg.toFixed(2);
+    avgTd.classList.toggle('low', avg!==null && !isNaN(tmin) && avg < tmin);
+  }
+
+  const pvThk = parseFloat(tr.dataset.prev);
+  const lossTd = tr.querySelector('td.loss'), rateTd = tr.querySelector('td.rate');
+  if(lossTd && rateTd){
+    if(!isNaN(pvThk) && minV!==null){
+      const {loss, rate} = calcRate({thk:pvThk, date:tr.dataset.pdate}, minV, tr.dataset.date);
+      lossTd.innerHTML = loss===''?'<span style="color:#bbb">·</span>':loss.toFixed(2);
+      lossTd.classList.toggle('warn', loss!=='' && loss>0);
+      rateTd.innerHTML = rate===''?'<span style="color:#bbb">·</span>':rate.toFixed(3);
+      rateTd.classList.toggle('warn', rate!=='' && rate>0);
+    }else{
+      lossTd.innerHTML = '<span style="color:#bbb">·</span>'; lossTd.classList.remove('warn');
+      rateTd.innerHTML = '<span style="color:#bbb">·</span>'; rateTd.classList.remove('warn');
+    }
+  }
+
+  tr.classList.toggle('done', isDone(key));
+  tr.classList.toggle('na', !!rd.st);
+  updateSummary();
+}
+
+function ensureReading(key){
+  const readings = active().readings;
+  if(!readings[key]) readings[key] = {0:'',1:'',2:'',rm:'',st:'',ts:''};
+  return readings[key];
+}
+
+// ── Export ────────────────────────────────────────────────────────
+function exportExcel(){
+  const items = buildRows();
+  const rows = items.map(it=>it.cells);
+  const aoa = [HEADERS, ...rows];
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  items.forEach((it,i)=>{
+    const r = i+2;
+    if(readingNums(it.rd).length){
+      ws[`L${r}`] = { t:'n', v: it.cells[11], f:`IFERROR(MIN(I${r}:K${r}),"")` };
+      ws[`M${r}`] = { t:'n', v: it.cells[12], f:`IFERROR(AVERAGE(I${r}:K${r}),"")` };
+    }
+  });
+  ws['!cols'] = [{wch:20},{wch:12},{wch:12},{wch:9},{wch:9},{wch:8},{wch:12},{wch:10},{wch:13},{wch:13},{wch:13},{wch:10},{wch:10},{wch:10},{wch:10},{wch:11},{wch:14},{wch:11},{wch:17},{wch:12},{wch:20}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "CML Register");
+
+  // Info / equipment cover sheet
+  const q = active().equip || {}, f = active().form || {};
+  const info = [
+    ['CML FIELD APP — SURVEY RECORD',''],
+    ['',''],
+    ['Pipework', active().name],
+    ['Exported', nowStamp()],
+    ['Inspector', f.inspector || ''],
+    ['Survey date', f.date || ''],
+    ['',''],
+    ['EQUIPMENT / CALIBRATION',''],
+    ['UT meter', q.meter || ''],
+    ['Meter serial no.', q.serial || ''],
+    ['Probe / transducer', q.probe || ''],
+    ['Calibration block', q.block || ''],
+    ['Calibration due', q.calDue || ''],
+    ['Couplant', q.couplant || ''],
+    ['Surface temp (°C)', q.temp || ''],
+    ['',''],
+    ['Notes',''],
+    ['Min/Avg cells are live formulas over Readings 1–3.',''],
+    ['Loss and Rate are based on the MINIMUM reading vs the imported previous survey.',''],
+    ['Verify all output against your inspection procedure.','']
+  ];
+  const wsI = XLSX.utils.aoa_to_sheet(info);
+  wsI['!cols'] = [{wch:34},{wch:40}];
+  XLSX.utils.book_append_sheet(wb, wsI, "Info");
+
+  const name = (active().name.replace(/[^\w\- ]+/g,'').trim() || 'CML') + '_register.xlsx';
+  XLSX.writeFile(wb, name);
+}
+
+function exportCSV(){
+  const rows = buildRows().map(it=>it.cells);
+  const esc = v => `"${String(v).replace(/"/g,'""')}"`;
+  const csv = [HEADERS, ...rows].map(r=>r.map(esc).join(',')).join('\n');
+  const blob = new Blob([csv],{type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = (active().name.replace(/[^\w\- ]+/g,'').trim() || 'CML') + '_register.csv';
+  a.click();
+}
+
+// ── Previous survey import ────────────────────────────────────────
+async function importPrev(file){
+  let map = {};
+  const lower = file.name.toLowerCase();
+  try{
+    if(lower.endsWith('.json')){
+      const data = JSON.parse(await file.text());
+      const pws = data.pipeworks ? Object.values(data.pipeworks) : [];
+      pws.forEach(pw=>{
+        (pw.cmls||[]).forEach(cml=>{
+          Object.entries(pw.readings||{}).forEach(([k,rd])=>{
+            if(!k.startsWith(`${cml.circuit}-${cml.name}-`)) return;
+            const nums = readingNums(rd);
+            if(nums.length) map[k] = {thk: Math.min(...nums), date: cml.date || ''};
+          });
+        });
+      });
+    }else{
+      let wb;
+      if(lower.endsWith('.csv')) wb = XLSX.read(await file.text(), {type:'string'});
+      else wb = XLSX.read(await file.arrayBuffer());
+      const aoa = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {header:1, raw:false, defval:''});
+      const hi = aoa.findIndex(r => r && r.some(c => String(c).trim() === 'CML ID'));
+      if(hi < 0) throw new Error('No "CML ID" header found');
+      const H = aoa[hi].map(c => String(c||'').trim().toLowerCase());
+      const col = n => H.findIndex(h => h.startsWith(n));
+      const cId = col('cml id'), cMin = col('min ('), cAvg = col('avg'), cDate = col('date');
+      const cR = [col('reading 1'), col('reading 2'), col('reading 3')];
+      for(let i=hi+1; i<aoa.length; i++){
+        const r = aoa[i];
+        if(!r || !r[cId]) continue;
+        let thk = cMin >= 0 ? parseFloat(r[cMin]) : NaN;
+        if(isNaN(thk)){
+          const nums = cR.filter(c=>c>=0).map(c=>parseFloat(r[c])).filter(v=>!isNaN(v));
+          if(nums.length) thk = Math.min(...nums);
+        }
+        if(isNaN(thk) && cAvg >= 0) thk = parseFloat(r[cAvg]);
+        if(isNaN(thk)) continue;
+        map[String(r[cId]).trim()] = {thk, date: cDate>=0 ? String(r[cDate]||'') : ''};
+      }
+    }
+  }catch(e){
+    alert('Could not read that file as a previous survey: ' + e.message);
+    return;
+  }
+  const total = Object.keys(map).length;
+  if(!total){ alert('No usable readings found in that file.'); return; }
+  const keys = new Set(pointList().map(p=>p.key));
+  let matched = 0;
+  Object.keys(map).forEach(k=>{ if(keys.has(k)) matched++; });
+  active().prev = Object.assign(active().prev || {}, map);
+  generate();
+  save();
+  alert(`Previous survey loaded: ${total} points read, ${matched} match CMLs in this pipework. Loss & corrosion rate now shown live (based on minimum reading).`);
+}
+
+// ── Run mode ──────────────────────────────────────────────────────
+let rmList = [], rmIdx = 0;
+
+function buildRunList(){
+  let list = pointList();
+  if($('rmOnly').checked) list = list.filter(p => !isDone(p.key));
+  return list;
+}
+
+function openRun(){
+  rmList = buildRunList();
+  if(!rmList.length){
+    alert($('rmOnly') && $('rmOnly').checked ? 'No incomplete points left.' : 'Add CMLs first.');
+    return;
+  }
+  // start at the first incomplete point
+  rmIdx = Math.max(0, rmList.findIndex(p => !isDone(p.key)));
+  if(rmIdx === -1) rmIdx = 0;
+  $('runOverlay').hidden = false;
+  rmRender(true);
+}
+
+function closeRun(){
+  $('runOverlay').hidden = true;
+  generate();
+  save();
+}
+
+function rmCur(){ return rmList[rmIdx]; }
+
+function rmRender(focusFirst){
+  const cur = rmCur();
+  if(!cur){ closeRun(); return; }
+  const rd = active().readings[cur.key] || {};
+  const c = cur.cml;
+  $('rmTitle').innerHTML = `${escHtml(c.name)} <span class="pos">· ${escHtml(cur.pos)}</span>`;
+  $('rmSub').textContent = `${c.circuit} · ${c.component} · NPS ${c.nps}" · nom ${c.nominal || '—'} · t-min ${c.tmin || '—'}`;
+  const allPts = pointList();
+  const doneCount = allPts.filter(p => isDone(p.key)).length;
+  $('rmProg').textContent = `POINT ${rmIdx+1} / ${rmList.length} IN RUN · ${doneCount} / ${allPts.length} COMPLETE OVERALL`;
+  $('rmBarFill').style.width = allPts.length ? (100*doneCount/allPts.length).toFixed(1) + '%' : '0%';
+
+  const pv = (active().prev || {})[cur.key];
+  if(pv){
+    $('rmPrevLine').hidden = false;
+    $('rmPrevLine').textContent = `PREVIOUS: ${pv.thk} mm${pv.date ? ' (' + pv.date + ')' : ''}`;
+  }else{
+    $('rmPrevLine').hidden = true;
+  }
+
+  ['rm0','rm1','rm2'].forEach((id,i)=>{ $(id).value = (rd[i] !== undefined && rd[i] !== null) ? rd[i] : ''; });
+  $('rmRm').value = rd.rm || '';
+  rmCalcLine();
+  renderChips(rd.st || '');
+  if(focusFirst){
+    const firstEmpty = ['rm0','rm1','rm2'].find(id => $(id).value === '');
+    setTimeout(()=> $(firstEmpty || 'rm0').focus(), 60);
+  }
+}
+
+function renderChips(st){
+  $('rmChips').innerHTML = STATUS.filter(s=>s[0]).map(([v,l])=>
+    `<button class="chip${v===st?' on':''}" data-st="${v}">${l}</button>`).join('');
+  $('rmChips').querySelectorAll('.chip').forEach(b=>{
+    onTap(b, ()=>{
+      const cur = rmCur(); if(!cur) return;
+      const rd = ensureReading(cur.key);
+      rd.st = (rd.st === b.dataset.st) ? '' : b.dataset.st;
+      rd.ts = nowStamp();
+      save();
+      renderChips(rd.st);
+      if(rd.st) rmNext();   // marking N/A moves straight on
+    });
+  });
+}
+
+function rmCalcLine(){
+  const cur = rmCur(); if(!cur) return;
+  const rd = active().readings[cur.key] || {};
+  const nums = readingNums(rd);
+  const nom = parseFloat(cur.cml.nominal), tmin = parseFloat(cur.cml.tmin);
+  const avg = nums.length ? nums.reduce((a,b)=>a+b,0)/nums.length : null;
+  ['rm0','rm1','rm2'].forEach(id => flagInput($(id), parseFloat($(id).value), nom, avg));
+  if(!nums.length){ $('rmCalc').innerHTML = '&nbsp;'; return; }
+  const minV = Math.min(...nums);
+  const low = !isNaN(tmin) && minV < tmin;
+  const pv = (active().prev || {})[cur.key];
+  let extra = '';
+  if(pv){
+    const {loss, rate} = calcRate(pv, minV, cur.cml.date);
+    if(loss !== '') extra = ` · LOSS ${loss.toFixed(2)}${rate !== '' ? ' · ' + rate.toFixed(3) + ' mm/yr' : ''}`;
+  }
+  $('rmCalc').innerHTML =
+    `MIN ${minV.toFixed(2)} · AVG ${avg.toFixed(2)}${extra}` +
+    (low ? ` <span class="lowmsg">▼ BELOW t-min ${tmin.toFixed(2)}</span>` : '');
+}
+
+function rmNext(){
+  if($('rmOnly').checked){
+    rmList = buildRunList();
+    if(!rmList.length){ alert('All points complete.'); closeRun(); return; }
+    if(rmIdx >= rmList.length) rmIdx = 0;
+  }else{
+    rmIdx = (rmIdx + 1) % rmList.length;
+  }
+  rmRender(true);
+}
+function rmPrev(){
+  rmIdx = (rmIdx - 1 + rmList.length) % rmList.length;
+  rmRender(true);
+}
+
+['rm0','rm1','rm2'].forEach((id,i)=>{
+  $(id).addEventListener('input', ()=>{
+    const cur = rmCur(); if(!cur) return;
+    const rd = ensureReading(cur.key);
+    rd[i] = $(id).value;
+    rd.ts = nowStamp();
+    save();
+    rmCalcLine();
+  });
+  $(id).addEventListener('keydown', e=>{
+    if(e.key !== 'Enter') return;
+    e.preventDefault();
+    if(i < 2) $(['rm0','rm1','rm2'][i+1]).focus();
+    else rmNext();
+  });
+});
+$('rmRm').addEventListener('input', ()=>{
+  const cur = rmCur(); if(!cur) return;
+  const rd = ensureReading(cur.key);
+  rd.rm = $('rmRm').value;
+  save();
+});
+$('rmOnly').addEventListener('change', ()=>{
+  const curKey = rmCur() && rmCur().key;
+  rmList = buildRunList();
+  if(!rmList.length){ alert('No incomplete points left.'); $('rmOnly').checked = false; rmList = buildRunList(); }
+  rmIdx = Math.max(0, rmList.findIndex(p => p.key === curKey));
+  rmRender(false);
+});
+
+// ── Photos ────────────────────────────────────────────────────────
+let phCml = null, phUrls = [];
+
+async function openPhotos(cml){
+  phCml = cml;
+  $('phTitle').textContent = cml.name + ' · ' + cml.circuit;
+  $('phOverlay').hidden = false;
+  await renderPhotos();
+}
+function closePhotos(){
+  $('phOverlay').hidden = true;
+  phUrls.forEach(u => URL.revokeObjectURL(u));
+  phUrls = [];
+  loadPhotoCounts().then(renderCMLList);
+}
+async function renderPhotos(){
+  phUrls.forEach(u => URL.revokeObjectURL(u));
+  phUrls = [];
+  const arr = (await idbGet('photos', photoKey(phCml)).catch(()=>null)) || [];
+  $('phGrid').innerHTML = arr.length ? arr.map((p,i)=>{
+    const u = URL.createObjectURL(p.b);
+    phUrls.push(u);
+    return `<div class="ph-cell"><img src="${u}"><button class="x-btn" data-i="${i}">×</button><span class="ts">${escHtml(p.ts||'')}</span></div>`;
+  }).join('') : '<div class="no-cmls" style="grid-column:1/-1">No photos yet</div>';
+  $('phGrid').querySelectorAll('.x-btn').forEach(b=>{
+    onTap(b, async ()=>{
+      const arr2 = (await idbGet('photos', photoKey(phCml)).catch(()=>null)) || [];
+      arr2.splice(+b.dataset.i, 1);
+      if(arr2.length) await idbSet('photos', photoKey(phCml), arr2);
+      else await idbDel('photos', photoKey(phCml));
+      renderPhotos();
+    });
+  });
+}
+async function compressImage(file){
+  try{
+    const img = await createImageBitmap(file);
+    const scale = Math.min(1, 1400/Math.max(img.width, img.height));
+    const c = document.createElement('canvas');
+    c.width = Math.round(img.width*scale); c.height = Math.round(img.height*scale);
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    return await new Promise(r => c.toBlob(b => r(b || file), 'image/jpeg', 0.72));
+  }catch(e){ return file; }
+}
+$('phFile').addEventListener('change', async e=>{
+  const file = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if(!file || !phCml) return;
+  const blob = await compressImage(file);
+  const key = photoKey(phCml);
+  const arr = (await idbGet('photos', key).catch(()=>null)) || [];
+  arr.push({b: blob, ts: nowStamp()});
+  try{ await idbSet('photos', key, arr); }
+  catch(err){ alert('Could not save photo (storage full?).'); return; }
+  renderPhotos();
+});
+
+// ── Events ────────────────────────────────────────────────────────
+// iPad/touch-safe tap binding. On iOS Safari, a tap while the on-screen
+// keyboard is dismissing can swallow the 'click' event entirely, so we
+// also listen for 'touchend' (preventDefault stops a double-fire).
+function onTap(el, fn){
+  el.addEventListener('click', fn);
+  el.addEventListener('touchend', e=>{ e.preventDefault(); fn(e); });
+}
+
+function addCML(){
+  const name = $('addCMLName').value.trim();
+  if(!name){ $('addCMLName').focus(); return; }
+  const circuit = $('circuit').value.trim() || 'CIRCUIT';
+  // Duplicate guard: same circuit + CML name would share reading keys
+  if(active().cmls.some(c => c.name === name && c.circuit === circuit)){
+    alert(`${name} already exists on ${circuit}. Use a unique CML number.`);
+    return;
+  }
+  const component = $('addComponent').value;
+  // Snapshot the circuit inputs at the moment the CML is added,
+  // so later changes to the form don't alter existing CMLs.
+  active().cmls.push({
+    name,
+    component,
+    circuit,
+    nps: parseFloat($('nps').value) || 0,
+    nominal: $('nominal').value.trim(),
+    tmin: $('tmin').value.trim(),
+    date: $('inspDate').value,
+    inspector: $('inspector').value.trim()
+  });
+  $('addCMLName').value = '';
+  renderCMLList();
+  generate();
+  save();
+}
+
+onTap($('addCMLBtn'), addCML);
+
+// Return/Go key on the iPad keyboard also adds the CML
+$('addCMLName').addEventListener('keydown', e=>{
+  if(e.key === 'Enter'){ e.preventDefault(); addCML(); }
+});
+
+// Keep the enlarged (focused) row fully visible inside the scroll area
+$('outBody').addEventListener('focusin', e=>{
+  const tr = e.target.closest('tr');
+  if(tr) setTimeout(()=> tr.scrollIntoView({block:'nearest', behavior:'smooth'}), 160);
+});
+
+// Thickness reading + remarks entry — update store + recalc without re-rendering
+$('outBody').addEventListener('input', e=>{
+  const t = e.target;
+  const isRd = t.classList.contains('rd'), isRm = t.classList.contains('rm');
+  if(!isRd && !isRm) return;
+  const key = t.dataset.key;
+  const rd = ensureReading(key);
+  if(isRd){
+    rd[t.dataset.f] = t.value;
+    rd.ts = nowStamp();
+    updateCells(key);
+  }else{
+    rd.rm = t.value;
+  }
+  save();
+});
+
+// Status dropdown in the table
+$('outBody').addEventListener('change', e=>{
+  const t = e.target;
+  if(!t.classList.contains('rs')) return;
+  const rd = ensureReading(t.dataset.key);
+  rd.st = t.value;
+  rd.ts = nowStamp();
+  updateCells(t.dataset.key);
+  save();
+});
+
+['circuit','nps','nominal','tmin','inspDate','inspector'].forEach(id=>
+  $(id).addEventListener('input', ()=>{ generate(); save(); })
+);
+['eqMeter','eqSerial','eqProbe','eqBlock','eqCalDue','eqCouplant','eqTemp'].forEach(id=>
+  $(id).addEventListener('input', save)
+);
+onTap($('addRow'), ()=>{ store.mapping.push({upTo:9999,pts:4}); renderMap(); generate(); save(); });
+onTap($('export'), exportExcel);
+onTap($('csv'), exportCSV);
+onTap($('runBtn'), openRun);
+onTap($('rmExit'), closeRun);
+onTap($('rmNextBtn'), rmNext);
+onTap($('rmPrevBtn'), rmPrev);
+onTap($('prevImport'), ()=> $('prevFile').click());
+$('prevFile').addEventListener('change', e=>{
+  if(e.target.files && e.target.files[0]) importPrev(e.target.files[0]);
+  e.target.value = '';
+});
+onTap($('onlyIncomplete'), ()=>{
+  document.body.classList.toggle('hide-done');
+  $('onlyIncomplete').classList.toggle('on', document.body.classList.contains('hide-done'));
+});
+onTap($('phAdd'), ()=> $('phFile').click());
+onTap($('phClose'), closePhotos);
+
+// Pipework manager events
+$('pwSelect').addEventListener('change', e=> switchTo(e.target.value));
+onTap($('pwNew'), newPipework);
+onTap($('pwRename'), renamePipework);
+onTap($('pwDup'), duplicatePipework);
+onTap($('pwDel'), deletePipework);
+onTap($('pwBackup'), backup);
+onTap($('pwRestore'), ()=> $('pwFile').click());
+$('pwFile').addEventListener('change', e=>{
+  if(e.target.files && e.target.files[0]) restore(e.target.files[0]);
+  e.target.value = '';
+});
+
+// ── Init ──────────────────────────────────────────────────────────
+(async function init(){
+  try{ await openDB(); }catch(e){ /* IndexedDB unavailable — fall back to localStorage */ }
+  await loadStore();
+  await refreshAll();
+  save();
+  rollBackup();
+  setInterval(rollBackup, 10*60*1000);
+
+  // Ask the browser to treat our storage as persistent (reduces eviction risk)
+  if(navigator.storage && navigator.storage.persist) navigator.storage.persist();
+
+  // Offline support when hosted (no-op when opened as a local file)
+  if('serviceWorker' in navigator && location.protocol.indexOf('http') === 0){
+    navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  }
+})();
 </script>
 </body>
 </html>
